@@ -19,16 +19,20 @@ gemini = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
 # Patch ImageBindRanker so it doesn't require the imagebind package.
 # Lite mode removes the visual_ranker immediately after loading, so it's never used.
 from sam_audio.ranking.imagebind import ImageBindRanker as _IBR
+
 _IBR.__init__ = lambda self, cfg: super(_IBR, self).__init__()
 
 # Patch BaseModel._from_pretrained for newer huggingface_hub (>=0.37) which no longer
 # passes `proxies` and `resume_download` to _from_pretrained.
 from sam_audio.model.base import BaseModel as _BM
+
 _orig_fp = _BM._from_pretrained.__func__
+
 
 @classmethod
 def _compat_fp(cls, *, proxies=None, resume_download=False, **kw):
     return _orig_fp(cls, proxies=proxies, resume_download=resume_download, **kw)
+
 
 _BM._from_pretrained = _compat_fp
 
@@ -68,7 +72,9 @@ def _describe_speaker(file_bytes: bytes, mime_type: str) -> str:
         model="gemini-2.0-flash",
         contents=types.Content(
             parts=[
-                types.Part(inline_data=types.Blob(data=file_bytes, mime_type=mime_type)),
+                types.Part(
+                    inline_data=types.Blob(data=file_bytes, mime_type=mime_type)
+                ),
                 types.Part(text=SPEAKER_PROMPT),
             ]
         ),
